@@ -19,8 +19,9 @@
         </div>
         <div class="row align-items-start g-5 ">
           <div class="col">
-            <h6>O período a ser pesquisado não pode passar de 5 dias úteis.</h6>
-            <h6>Não foi possível atender a sua pesquisa, tente novamente.</h6>
+            {% for e in showErrors %}
+            <h6>{{ e }}</h6>
+            {% endfor %}
           </div>
         </div>
       </div>
