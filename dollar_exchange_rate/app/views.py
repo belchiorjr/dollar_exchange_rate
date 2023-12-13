@@ -4,5 +4,9 @@ from app.sync import SyncData
 
 # Create your views here.
 def home(request):
-     SyncData()
+     # SyncData()
      return render(request, 'home.html')
+
+def search(request):
+     # return render(request, 'search.html')
+     return render(request, 'error.html')
