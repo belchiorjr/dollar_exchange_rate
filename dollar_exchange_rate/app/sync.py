@@ -4,16 +4,17 @@ from datetime import date, datetime
 from workalendar.america import  Brazil
 from .models import ExchangeRate
 
-def SyncData():
-    for d in LastWorkingDays(date.today()):
-        if ExchangeRate.objects.filter(rate_at=d).exists():
+def SyncData(dates):
+
+    for dt in dates:
+        if ExchangeRate.objects.filter(rate_at=dt).exists():
             continue
 
-        dictData = GetRates(d)
+        dictData = GetRates(dt)
 
         if len(dictData) > 0:
             er = ExchangeRate(
-                rate_at=d,
+                rate_at=dt,
                 brl = dictData['rates']['BRL'], 
                 eur= dictData['rates']['EUR'],
                 jpy = dictData['rates']['JPY'],
@@ -21,8 +22,14 @@ def SyncData():
             )
 
             er.save()
-               
 
+def GetListRates(dates):
+    list = []
+
+    for dt in dates:
+        list.append(ExchangeRate.objects.filter(rate_at=dt))
+
+    return list
 
 def LastWorkingDays(dtBase = date.today()):
     cal = Brazil()

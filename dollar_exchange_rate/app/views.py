@@ -1,26 +1,37 @@
 from django.shortcuts import render,redirect
-from django.http import HttpResponse
 from datetime import date, datetime
 from workalendar.america import  Brazil
-from app.sync import SyncData
+from app.sync import SyncData, GetListRates
 
 # Create your views here.
 def home(request):
-     # SyncData()
      return render(request, 'home.html')
 
 def search(request):
-     dtStart = datetime.strptime(request.POST.get('dt_start'), '%Y-%m-%d').date()
-     dtEnd = datetime.strptime(request.POST.get('dt_end'), '%Y-%m-%d').date()
+     currency = request.POST.get('currency')
+     _dtStart = request.POST.get('dt_start')
+     _dtEnd = request.POST.get('dt_end')
 
+     dtStart = datetime.strptime(_dtStart, '%Y-%m-%d').date()
+     dtEnd = datetime.strptime(_dtEnd, '%Y-%m-%d').date()
+     dates = workingDays(dtStart, dtEnd)
+     
      errorsColect = periodIsValid(dtStart, dtEnd)
-     errorsColect += workingDaysLimit(dtStart, dtEnd)
-
+     errorsColect += workingDaysLimit(dates)
+     
      if len(errorsColect) > 0 :
           url = f'/errors?err={','.join(errorsColect)}'
           return redirect(url)
 
-     return render(request, 'search.html')
+     SyncData(dates)
+     rates = GetListRates(dates)
+
+
+     lbl = f'Resultado para o período de {dtStart.day}/{dtStart.month}/{dtStart.year} a {dtEnd.day}/{dtEnd.month}/{dtEnd.year} com a moeda {currency}'
+
+     return render(request, 'search.html', {'label_result':lbl, 'currency':currency, 'rates':rates})
+
+
 
 def periodIsValid(dtStart, dtEnd = date):
      errorsColect = []
@@ -29,31 +40,42 @@ def periodIsValid(dtStart, dtEnd = date):
      if dtStart == None or dtEnd == None:
           errorsColect.append('3')
 
-     if dtStart >= today or dtEnd >= today:
+     elif dtStart >= today or dtEnd >= today:
           errorsColect.append('3')
 
-     if dtEnd <= dtStart:
+     elif dtEnd <= dtStart:
           errorsColect.append('2')
 
      return errorsColect
 
-def workingDaysLimit(dtStart, dtEnd = date):
-     errorsColect = []
-     delta = abs((dtStart-dtEnd).days)
-   
-     cal = Brazil()
-     count = 0
 
+def workingDaysLimit(delta):
+     errorsColect = []
+     errorsColect.append('1')
+
+
+def workingDays(dtStart, dtEnd = date):
+     dates = []
+     delta = abs((dtEnd-dtStart).days)+1
+     cal = Brazil()
+     
      for i in range(delta):
-          if cal.add_working_days(dtStart, i):
-               print(cal.add_working_days(dtStart, i))
-               count+=1
+          dt = cal.add_working_days(dtStart, i) 
+
+          if dt != None and dt <= dtEnd:
+               dates.append(dt)
+     
+     return dates
+
+
+def workingDaysLimit(dates):
+     errorsColect = []
    
-          if count > 5:
-              errorsColect.append('1')
-              break
-         
+     if len(dates) > 5:
+          errorsColect.append('1')
+        
      return errorsColect
+
 
 def error(request):
      errorsDic = {

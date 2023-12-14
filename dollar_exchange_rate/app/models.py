@@ -9,4 +9,4 @@ class ExchangeRate(models.Model):
     created_at = models.DateTimeField(null=False)
 
     def __str__(self):
-        return f'{self.rate_at} {self.brl} {self.eur}'  
+        return f'{self.rate_at} {self.brl} {self.eur} {self.jpy} {self.created_at}'  
