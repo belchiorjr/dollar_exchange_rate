@@ -3,6 +3,7 @@ from vat_comply.api import GetRates
 from datetime import date, datetime
 from workalendar.america import  Brazil
 from .models import ExchangeRate
+from django.db.models import F
 
 def SyncData(dates):
 
@@ -23,11 +24,14 @@ def SyncData(dates):
 
             er.save()
 
-def GetListRates(dates):
+def GetListRates(dates, currency):
     list = []
 
+    arg =  f'{currency}'
+
     for dt in dates:
-        list.append(ExchangeRate.objects.filter(rate_at=dt))
+        r = ExchangeRate.objects.filter(rate_at=dt).values('rate_at').order_by('rate_at').annotate(value = F(f'{currency}'))
+        list.append(r[0])
 
     return list
 

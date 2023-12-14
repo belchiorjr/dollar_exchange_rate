@@ -1,3 +1,4 @@
 venv/
 dollar_exchange_rate/dollar_exchange_rate/__pycache__/
 dollar_exchange_rate/db.sqlite3
+.vscode/

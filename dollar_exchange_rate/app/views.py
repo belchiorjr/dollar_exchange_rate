@@ -2,42 +2,57 @@ from django.shortcuts import render,redirect
 from datetime import date, datetime
 from workalendar.america import  Brazil
 from app.sync import SyncData, GetListRates
+import json
 
 # Create your views here.
 def home(request):
      return render(request, 'home.html')
 
 def search(request):
-     currency = request.POST.get('currency')
-     _dtStart = request.POST.get('dt_start')
-     _dtEnd = request.POST.get('dt_end')
 
-     dtStart = datetime.strptime(_dtStart, '%Y-%m-%d').date()
-     dtEnd = datetime.strptime(_dtEnd, '%Y-%m-%d').date()
-     dates = workingDays(dtStart, dtEnd)
-     
-     errorsColect = periodIsValid(dtStart, dtEnd)
-     errorsColect += workingDaysLimit(dates)
-     
+     errorsColect = []
+
+     try:
+          currency = request.POST.get('currency')
+          _dtStart = request.POST.get('dt_start')
+          _dtEnd = request.POST.get('dt_end')
+          dtStart = datetime.strptime(_dtStart, '%Y-%m-%d').date()
+          dtEnd = datetime.strptime(_dtEnd, '%Y-%m-%d').date()
+          errorsColect = periodIsValid(dtStart, dtEnd)
+          dates = workingDays(dtStart, dtEnd)
+          errorsColect += workingDaysLimit(dates)
+     except ValueError:
+          errorsColect += ['5']
+
      if len(errorsColect) > 0 :
           url = f'/errors?err={','.join(errorsColect)}'
           return redirect(url)
 
      SyncData(dates)
-     rates = GetListRates(dates)
+     rates = GetListRates(dates, currency)
+     
+     cat = [] 
+     val = []
+
+     for r in rates :
+          cat.append(f'\'{str(r['rate_at'].strftime('%d/%m/%Y'))}\'')
+          val.append(str(round(r['value'],2)))
 
 
-     lbl = f'Resultado para o período de {dtStart.day}/{dtStart.month}/{dtStart.year} a {dtEnd.day}/{dtEnd.month}/{dtEnd.year} com a moeda {currency}'
+     categories = ','.join(cat)
+     values = ','.join(val)
 
-     return render(request, 'search.html', {'label_result':lbl, 'currency':currency, 'rates':rates})
-
+     upCurrency = f'{currency}'.upper()
+     lbl = f'Resultado para o período de {dtStart.day}/{dtStart.month}/{dtStart.year} a {dtEnd.day}/{dtEnd.month}/{dtEnd.year} com a moeda {upCurrency}'
+ 
+     return render(request, 'search.html', {'label_result':lbl, 'currency':upCurrency, 'rates':rates, 'categories': categories, 'values': values })
 
 
 def periodIsValid(dtStart, dtEnd = date):
      errorsColect = []
      today = date.today()
 
-     if dtStart == None or dtEnd == None:
+     if dtStart == '' or dtEnd == '':
           errorsColect.append('3')
 
      elif dtStart >= today or dtEnd >= today:
@@ -48,10 +63,6 @@ def periodIsValid(dtStart, dtEnd = date):
 
      return errorsColect
 
-
-def workingDaysLimit(delta):
-     errorsColect = []
-     errorsColect.append('1')
 
 
 def workingDays(dtStart, dtEnd = date):
@@ -83,7 +94,7 @@ def error(request):
           '2':'A data inicial, não pode ser maior ou igual a data final para período a ser pesquisado.',
           '3':'A data inicial ou final, deve ser uma anterior ao dia de hoje para realizar a pesquisa.',
           '4':'A data final, não pode ser menor ou igual a data inicial para período a ser pesquisado.',          
-          '5':'Tente novamente depois.',          
+          '5':'Preencha os dados necessários, tente novamente.',          
      }
 
      errStr = request.GET.get('err')
